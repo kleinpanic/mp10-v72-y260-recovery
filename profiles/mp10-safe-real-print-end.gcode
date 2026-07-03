@@ -1,0 +1,12 @@
+; MP10 safe real-print end template.
+M83
+G1 E-3 F1800
+M82
+M104 S0
+M140 S0
+M107
+G91
+G1 Z5 F300
+G90
+G1 X20 Y180 F3000
+M84

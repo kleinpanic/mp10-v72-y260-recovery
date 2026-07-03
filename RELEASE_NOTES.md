@@ -24,3 +24,9 @@ After flashing, confirm:
 
 This is unofficial firmware. Keep official v72 rollback media available.
 
+## Docs Added
+
+- Requirements and upstream/fork notes.
+- Slicer/profile setup for `X300 Y260 Z400` with active UBL.
+- SD-card maintenance layout and Wi-Fi credential handling.
+- Evidence summary for the tested recovery printer.

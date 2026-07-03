@@ -1,8 +1,16 @@
 # MP10 v72 Y260 Recovery Firmware
 
-Unofficial recovery firmware for the full-size Monoprice MP10 / Malyan MA10-class printer when the stock full-size v72 calibration path drives the Y axis farther forward than the machine can physically travel.
+Unofficial full-size Monoprice MP10 / Malyan MA10 recovery build for the Y-axis front overtravel / grinding failure during stock v72 calibration.
 
-This build keeps the official full-size MP10 v72 firmware family and applies one recovery policy: bound the Y envelope to `260 mm` so calibration/probing and host output do not try to use the unsafe stock high-Y region.
+> Short version: if your full-size MP10 on v72 tries to probe/calibrate near `Y290` and the bed hits the front frame first, this package bounds the firmware-native Y path to `Y260` without cutting, drilling, or physically modifying the printer.
+
+## Project Status
+
+- Public recovery repo for a tested full-size MP10 / MA10-class printer.
+- Based on the official `Monoprice3DP/MP10Firmware72` v72 `update.bin`.
+- Distributed as a binary patch plus ready-to-flash `update.bin`.
+- Verified on the recovery printer by serial evidence and supervised calibration/probing.
+- Not a Monoprice release, not a universal firmware recommendation, and not for MP10 Mini.
 
 ## What This Fixes
 
@@ -10,12 +18,23 @@ On the affected printer, official full-size v72 reported `X300 Y300 Z400`, but s
 
 This firmware changes the relevant Y max / UBL high-row constants so the printer uses `Y260` instead of the unsafe stock high-Y target. It is intended as a no-cut/no-drill recovery option for machines showing the same MP10 front/high-Y overtravel failure.
 
+## Quick Links
+
+- [Requirements](docs/REQUIREMENTS.md)
+- [Build and reproduce](docs/BUILD.md)
+- [Install and safety notes](docs/SAFETY.md)
+- [Evidence summary](docs/EVIDENCE.md)
+- [Slicer/profile setup](docs/SLICER.md)
+- [SD card layout](docs/SD_CARD.md)
+- [Upstream / fork notes](docs/UPSTREAM.md)
+
 ## Included Files
 
 - `firmware/mp10-v72-y260/update.bin` - ready-to-flash custom firmware image.
 - `firmware/mp10-v72-y260/MANIFEST.json` - exact binary patch manifest.
 - `firmware/mp10-v72-y260/MANIFEST.md` - human-readable patch manifest.
 - `tools/mp10_patch_v72_y260.py` - reproducible patch script for the official full-size v72 `update.bin`.
+- `profiles/` - conservative Y260 active-UBL profile notes and reference start/end G-code.
 - `evidence/` - serial logs from the machine this was built to recover.
 
 `update.bin` SHA-256:
@@ -33,6 +52,14 @@ This firmware changes the relevant Y max / UBL high-row constants so the printer
 - You can supervise the flash and the first post-flash calibration.
 
 Do not use this on an MP10 Mini, on unknown firmware, or on a printer whose stock Y travel safely clears the normal MP10 calibration envelope.
+
+## Download
+
+Use the GitHub release asset named `update.bin`:
+
+```text
+https://github.com/kleinpanic/mp10-v72-y260-recovery/releases/tag/v72-y260-1
+```
 
 ## Install
 
@@ -85,3 +112,6 @@ The included evidence shows:
 
 This is an unofficial recovery firmware and not a Monoprice release. It fixes the unsafe high-Y calibration envelope on the tested printer, but it is not a substitute for inspecting your own machine. Use at your own risk and keep the official v72 firmware available as rollback media.
 
+## Search Terms
+
+MP10 Y axis grinding, MP10 front overtravel, MP10 calibration hits frame, MP10 v72 Y290, Malyan MA10 Y axis, Monoprice MP10 auto leveling crash, MP10 UBL Y260.
