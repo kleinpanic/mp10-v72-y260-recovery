@@ -33,18 +33,26 @@ def sha256(path: Path) -> str:
 
 def find_ghidra_headless(explicit: str | None) -> Path:
     candidates: list[Path] = []
+    workspace_root = Path(__file__).resolve().parents[3] if len(Path(__file__).resolve().parents) > 3 else None
     if explicit:
         candidates.append(Path(explicit))
     if os.environ.get("GHIDRA_HEADLESS"):
         candidates.append(Path(os.environ["GHIDRA_HEADLESS"]))
+    if os.environ.get("GHIDRA_HOME"):
+        candidates.append(Path(os.environ["GHIDRA_HOME"]) / "support/analyzeHeadless")
     for name in ("analyzeHeadless",):
         found = shutil.which(name)
         if found:
             candidates.append(Path(found))
+    if workspace_root:
+        candidates.extend(
+            [
+                workspace_root / "mp10-debug/tooling/ghidra_11.3.1_PUBLIC/support/analyzeHeadless",
+                workspace_root / "mp10-debug/tooling/ghidra_12.1.2_PUBLIC/support/analyzeHeadless",
+            ]
+        )
     for path in (
-        Path.home() / "ghidra_11.3.1_PUBLIC/support/analyzeHeadless",
         Path.home() / ".local/srcs/ghidra_11.3.1_PUBLIC/support/analyzeHeadless",
-        Path.home() / "ghidra_12.1.2_PUBLIC/support/analyzeHeadless",
     ):
         candidates.append(path)
 
