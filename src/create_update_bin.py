@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Create a bounded-Y260 MP10 v72 firmware image from the official raw update.bin."""
+"""Create the Y260-bounded Monoprice MP10 v72 update.bin.
+
+This is a reproducible binary patcher for the official full-size MP10 v72
+firmware image. It validates the exact upstream image hash before changing any
+bytes.
+"""
 
 from __future__ import annotations
 
@@ -246,18 +251,26 @@ def write_markdown_manifest(manifest: dict[str, object], path: Path) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_checksums(paths: list[Path], checksum_path: Path) -> None:
+    lines = []
+    for path in paths:
+        digest = sha256_bytes(path.read_bytes())
+        lines.append(f"{digest}  {path.as_posix()}")
+    checksum_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--source",
         type=Path,
-        default=Path("upstream-MP10Firmware72/MA10v72/update.bin"),
+        default=Path("official/update.bin"),
         help="Official full-size MP10 v72 update.bin to patch.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("mp10-debug/firmware-prep/custom-y260"),
+        default=Path("firmware"),
         help="Directory where the patched update.bin and manifests will be written.",
     )
     parser.add_argument("--force", action="store_true", help="Overwrite existing generated artifacts.")
@@ -269,8 +282,9 @@ def main() -> int:
     source = args.source
     out_dir = args.output_dir
     output = out_dir / "update.bin"
-    manifest_json = out_dir / "MANIFEST.json"
-    manifest_md = out_dir / "MANIFEST.md"
+    manifest_json = out_dir / "manifest.json"
+    manifest_md = out_dir / "manifest.md"
+    checksum_path = out_dir / "SHA256SUMS.txt"
 
     before = source.read_bytes()
     validate_input(before, source)
@@ -280,7 +294,7 @@ def main() -> int:
         raise SystemExit("Internal error: patched image size changed")
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    for path in (output, manifest_json, manifest_md):
+    for path in (output, manifest_json, manifest_md, checksum_path):
         if path.exists() and not args.force:
             raise SystemExit(f"Refusing to overwrite {path}; rerun with --force")
 
@@ -288,12 +302,14 @@ def main() -> int:
     manifest = build_manifest(source, output, before, after)
     manifest_json.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     write_markdown_manifest(manifest, manifest_md)
+    write_checksums([output, manifest_json, manifest_md], checksum_path)
 
     print(f"source_sha256={manifest['source_sha256']}")
     print(f"output={output}")
     print(f"output_sha256={manifest['output_sha256']}")
     print(f"manifest_json={manifest_json}")
     print(f"manifest_md={manifest_md}")
+    print(f"checksums={checksum_path}")
     print(f"patch_count={len(PATCHES)}")
     print(f"diff_range_count={len(manifest['diff_ranges'])}")
     return 0
