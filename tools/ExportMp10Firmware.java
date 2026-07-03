@@ -1,0 +1,235 @@
+// Exports generated analysis artifacts from the official MP10 v72 raw firmware image.
+//@category MP10
+
+import ghidra.app.decompiler.DecompInterface;
+import ghidra.app.decompiler.DecompileResults;
+import ghidra.app.script.GhidraScript;
+import ghidra.program.model.address.Address;
+import ghidra.program.model.lang.Register;
+import ghidra.program.model.lang.RegisterValue;
+import ghidra.program.model.listing.Function;
+import ghidra.program.model.listing.FunctionIterator;
+import ghidra.program.model.listing.Instruction;
+import ghidra.program.model.listing.InstructionIterator;
+import ghidra.program.model.mem.Memory;
+import ghidra.program.model.symbol.SourceType;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.math.BigInteger;
+
+public class ExportMp10Firmware extends GhidraScript {
+	private static final long LOAD_BASE = 0x08008000L;
+	private static final long IMAGE_SIZE = 0x1cf14L;
+
+	private static final String[] VECTOR_NAMES = {
+		"initial_sp",
+		"reset",
+		"nmi",
+		"hardfault",
+		"memmanage",
+		"busfault",
+		"usagefault",
+		"reserved_07",
+		"reserved_08",
+		"reserved_09",
+		"reserved_10",
+		"svc",
+		"debugmon",
+		"reserved_13",
+		"pendsv",
+		"systick"
+	};
+
+	@Override
+	public void run() throws Exception {
+		String[] args = getScriptArgs();
+		if (args.length < 1) {
+			throw new IllegalArgumentException("usage: ExportMp10Firmware <output-dir>");
+		}
+
+		File outDir = new File(args[0]);
+		if (!outDir.exists() && !outDir.mkdirs()) {
+			throw new IllegalStateException("could not create output directory: " + outDir);
+		}
+
+		int seeded = seedVectorTableFunctions();
+		analyzeChanges(currentProgram);
+
+		int functions = exportFunctions(outDir, seeded);
+		int instructions = exportDisassembly(outDir);
+		writeReadme(outDir, seeded, functions, instructions);
+
+		printf("Exported %d functions and %d instructions to %s\n", functions, instructions, outDir);
+	}
+
+	private int seedVectorTableFunctions() throws Exception {
+		int seeded = 0;
+		Memory memory = currentProgram.getMemory();
+		Address base = toAddr(LOAD_BASE);
+		if (!memory.contains(base)) {
+			throw new IllegalStateException("load base is not mapped: " + base);
+		}
+
+		int maxVectors = 96;
+		for (int i = 1; i < maxVectors; i++) {
+			long vector = readU32(LOAD_BASE + (i * 4L));
+			if (!isCodePointer(vector)) {
+				continue;
+			}
+
+			long targetValue = vector & 0xfffffffeL;
+			Address target = toAddr(targetValue);
+			String name = vectorName(i);
+			try {
+				setThumbMode(target);
+				disassemble(target);
+				Function existing = getFunctionAt(target);
+				if (existing == null) {
+					createFunction(target, name);
+				}
+				else if (existing.getName().startsWith("FUN_") || existing.getName().startsWith("entry")) {
+					existing.setName(name, SourceType.USER_DEFINED);
+				}
+				seeded++;
+			}
+			catch (Exception e) {
+				printf("WARN: failed to seed vector %d at 0x%08x: %s\n", i, targetValue, e.getMessage());
+			}
+		}
+		return seeded;
+	}
+
+	private String vectorName(int index) {
+		if (index < VECTOR_NAMES.length) {
+			return "vector_" + String.format("%02d", index) + "_" + VECTOR_NAMES[index];
+		}
+		return "vector_" + String.format("%02d", index);
+	}
+
+	private boolean isCodePointer(long value) {
+		if (value == 0L || value == 0xffffffffL) {
+			return false;
+		}
+		long target = value & 0xfffffffeL;
+		return target >= LOAD_BASE && target < (LOAD_BASE + IMAGE_SIZE);
+	}
+
+	private long readU32(long address) throws Exception {
+		byte[] bytes = new byte[4];
+		currentProgram.getMemory().getBytes(toAddr(address), bytes);
+		return ((long) bytes[0] & 0xffL) |
+			(((long) bytes[1] & 0xffL) << 8) |
+			(((long) bytes[2] & 0xffL) << 16) |
+			(((long) bytes[3] & 0xffL) << 24);
+	}
+
+	private void setThumbMode(Address address) throws Exception {
+		Register tmode = currentProgram.getProgramContext().getRegister("TMode");
+		if (tmode != null) {
+			currentProgram.getProgramContext().setRegisterValue(
+				address,
+				address,
+				new RegisterValue(tmode, BigInteger.ONE)
+			);
+		}
+	}
+
+	private int exportFunctions(File outDir, int seeded) throws Exception {
+		File cFile = new File(outDir, "decompiled.c");
+		File indexFile = new File(outDir, "FUNCTIONS.md");
+
+		DecompInterface decompiler = new DecompInterface();
+		if (!decompiler.openProgram(currentProgram)) {
+			throw new IllegalStateException("could not open decompiler: " + decompiler.getLastMessage());
+		}
+
+		int count = 0;
+		try (
+			PrintWriter cOut = new PrintWriter(new FileWriter(cFile));
+			PrintWriter indexOut = new PrintWriter(new FileWriter(indexFile))
+		) {
+			cOut.println("/*");
+			cOut.println(" * Generated C-like pseudocode from official Monoprice MP10 v72 update.bin.");
+			cOut.println(" * This is decompiler output, not original vendor source code.");
+			cOut.println(" */");
+			cOut.println();
+
+			indexOut.println("# MP10 v72 Generated Function Index");
+			indexOut.println();
+			indexOut.println("This file is generated by `tools/decompile_official_v72.py` and Ghidra.");
+			indexOut.println("Function names are recovered or synthetic; they are not vendor symbols unless documented otherwise.");
+			indexOut.println();
+			indexOut.println("- Seeded vector-table functions: " + seeded);
+			indexOut.println();
+
+			FunctionIterator functions = currentProgram.getFunctionManager().getFunctions(true);
+			while (functions.hasNext()) {
+				monitor.checkCancelled();
+				Function function = functions.next();
+				count++;
+
+				indexOut.println("- `" + function.getName() + "` at `" + function.getEntryPoint() + "`");
+				cOut.println("/* " + function.getName() + " at " + function.getEntryPoint() + " */");
+
+				DecompileResults results = decompiler.decompileFunction(function, 30, monitor);
+				if (results != null && results.decompileCompleted() && results.getDecompiledFunction() != null) {
+					cOut.println(results.getDecompiledFunction().getC());
+				}
+				else {
+					String message = results == null ? "no result" : results.getErrorMessage();
+					cOut.println("/* decompile failed: " + message + " */");
+				}
+				cOut.println();
+			}
+		}
+		finally {
+			decompiler.dispose();
+		}
+
+		return count;
+	}
+
+	private int exportDisassembly(File outDir) throws Exception {
+		File asmFile = new File(outDir, "disassembly.s");
+		int count = 0;
+		try (PrintWriter asmOut = new PrintWriter(new FileWriter(asmFile))) {
+			asmOut.println("; Generated disassembly from official Monoprice MP10 v72 update.bin.");
+			asmOut.println("; This is analysis output, not original vendor assembly source.");
+			asmOut.println();
+			InstructionIterator instructions = currentProgram.getListing().getInstructions(true);
+			while (instructions.hasNext()) {
+				monitor.checkCancelled();
+				Instruction instruction = instructions.next();
+				asmOut.println(instruction.getAddress() + ": " + instruction);
+				count++;
+			}
+		}
+		return count;
+	}
+
+	private void writeReadme(File outDir, int seeded, int functions, int instructions) throws Exception {
+		File readme = new File(outDir, "README.md");
+		try (PrintWriter out = new PrintWriter(new FileWriter(readme))) {
+			out.println("# Generated Official v72 Analysis");
+			out.println();
+			out.println("Generated from the official full-size Monoprice MP10 v72 `update.bin` using Ghidra.");
+			out.println();
+			out.println("This directory is not original vendor source. It is generated decompiler/disassembly output");
+			out.println("intended to make the binary patch auditable.");
+			out.println();
+			out.println("- Load base: `0x08008000`");
+			out.println("- Image size: `" + String.format("0x%x", IMAGE_SIZE) + "`");
+			out.println("- Seeded vector-table functions: `" + seeded + "`");
+			out.println("- Exported functions: `" + functions + "`");
+			out.println("- Exported instructions: `" + instructions + "`");
+			out.println();
+			out.println("Files:");
+			out.println();
+			out.println("- `decompiled.c` - C-like pseudocode generated by Ghidra.");
+			out.println("- `disassembly.s` - Ghidra instruction listing.");
+			out.println("- `FUNCTIONS.md` - generated function index.");
+		}
+	}
+}

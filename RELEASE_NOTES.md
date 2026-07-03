@@ -15,7 +15,15 @@ Initial public firmware patch for affected full-size Monoprice MP10 / Malyan MA1
 - `firmware/manifest.json`
 - `firmware/manifest.md`
 - `firmware/SHA256SUMS.txt`
-- `src/create_update_bin.py`
+- `tools/create_update_bin.py`
+- `tools/decompile_official_v72.py`
+- `tools/ExportMp10Firmware.java`
+- `src/README.md`
+- `src/official-v72/` generated Ghidra analysis output
+
+## Source Status
+
+The official full-size v72 artifact used here is a firmware binary. This release includes a reproducible binary patcher and generated Ghidra analysis output, not original vendor C/C++ source.
 
 ## Verify
 
