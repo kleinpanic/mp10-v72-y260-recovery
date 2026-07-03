@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.DS_Store
+._*
+.Spotlight-V100/
+.Trashes/
+.fseventsd/
+

@@ -1,0 +1,125 @@
+{
+  "created_at_utc": "2026-07-02T23:20:21+00:00",
+  "diff_ranges": [
+    {
+      "address_end_exclusive": "0x08008e0b",
+      "address_start": "0x08008e0a",
+      "new_hex": "82",
+      "offset_end_exclusive": "0x00e0b",
+      "offset_start": "0x00e0a",
+      "old_hex": "91"
+    },
+    {
+      "address_end_exclusive": "0x08008e0f",
+      "address_start": "0x08008e0e",
+      "new_hex": "82",
+      "offset_end_exclusive": "0x00e0f",
+      "offset_start": "0x00e0e",
+      "old_hex": "91"
+    },
+    {
+      "address_end_exclusive": "0x0800afe3",
+      "address_start": "0x0800afe2",
+      "new_hex": "82",
+      "offset_end_exclusive": "0x02fe3",
+      "offset_start": "0x02fe2",
+      "old_hex": "96"
+    },
+    {
+      "address_end_exclusive": "0x0800affb",
+      "address_start": "0x0800affa",
+      "new_hex": "82",
+      "offset_end_exclusive": "0x02ffb",
+      "offset_start": "0x02ffa",
+      "old_hex": "96"
+    },
+    {
+      "address_end_exclusive": "0x080248ef",
+      "address_start": "0x080248ee",
+      "new_hex": "82",
+      "offset_end_exclusive": "0x1c8ef",
+      "offset_start": "0x1c8ee",
+      "old_hex": "91"
+    }
+  ],
+  "kind": "mp10_official_v72_binary_patch_y260",
+  "known_caveats": [
+    "The exact official full-size v72 source was not present in the workspace. This is a binary patch of the official raw v72 image, not a source rebuild.",
+    "The UBL helper at 0x0e08/0x0e0c appears shared because stock X and Y mesh max are both 290. Lowering it may also constrain that helper's X argument envelope, although the soft X max and X mesh coordinate table are intentionally left unchanged.",
+    "Strings such as MESH_MAX_Y are not patched; they are documentation/debug text, not motion limits.",
+    "EEPROM writes and EEPROM resets are still not part of this artifact creation."
+  ],
+  "load_base": "0x08008000",
+  "output": "mp10-debug/firmware-prep/custom-y260/update.bin",
+  "output_sha256": "51e61467e79c5cfd9f59300a8665577da1bed0d14209e6dc717ff7c3f374a7f5",
+  "output_size": 118548,
+  "patches": [
+    {
+      "address": "0x08008e08",
+      "label": "ubl_shared_mesh_max_clamp_value",
+      "new_float": 260.0,
+      "new_word": "0x43820000",
+      "offset": "0x00e08",
+      "old_float": 290.0,
+      "old_word": "0x43910000",
+      "rationale": "Shared UBL helper clamp value. Stock X/Y mesh max were both 290, so the compiler folded this helper constant; lowering it is a safety fallback for parser/helper paths."
+    },
+    {
+      "address": "0x08008e0c",
+      "label": "ubl_shared_mesh_max_clamp_epsilon",
+      "new_float": 260.0000305175781,
+      "new_word": "0x43820001",
+      "offset": "0x00e0c",
+      "old_float": 290.0000305175781,
+      "old_word": "0x43910001",
+      "rationale": "Upper compare epsilon paired with ubl_shared_mesh_max_clamp_value. Must move with 0x0e08 or the helper clamp becomes internally inconsistent."
+    },
+    {
+      "address": "0x0800afe0",
+      "label": "soft_endstop_max_y_block_a",
+      "new_float": 260.0,
+      "new_word": "0x43820000",
+      "offset": "0x02fe0",
+      "old_float": 300.0,
+      "old_word": "0x43960000",
+      "rationale": "Y max entry in the first observed {min XYZ, max XYZ} initialized soft-limit block."
+    },
+    {
+      "address": "0x0800aff8",
+      "label": "soft_endstop_max_y_block_b",
+      "new_float": 260.0,
+      "new_word": "0x43820000",
+      "offset": "0x02ff8",
+      "old_float": 300.0,
+      "old_word": "0x43960000",
+      "rationale": "Y max entry in the repeated observed {min XYZ, max XYZ} initialized soft-limit block."
+    },
+    {
+      "address": "0x080248ec",
+      "label": "ubl_y_mesh_coordinate_high_row",
+      "new_float": 260.0,
+      "new_word": "0x43820000",
+      "offset": "0x1c8ec",
+      "old_float": 290.0,
+      "old_word": "0x43910000",
+      "rationale": "Second UBL coordinate array high row. The first matching array is left at X290; this patch changes the Y high row to the user-selected safe Y260 cap."
+    }
+  ],
+  "post_flash_readonly_checks": [
+    "M115 should still report VERSION: 72.",
+    "M211 should report Y max at or below 260 if the soft-limit patch is active.",
+    "M503 should be captured without M500/M502.",
+    "M420 V or G29 W should show no Y mesh/probe coordinate above 260 if the UBL patch is active.",
+    "M119, M105, and M27 should be captured before any motion, heat, extrusion, or probing."
+  ],
+  "pre_flash_checks": [
+    "Verify output diff ranges match the expected patch offsets only.",
+    "Keep the official v72 update.bin available as rollback media.",
+    "Inspect the target SD card before copying update.bin; do not overwrite unrelated evidence silently."
+  ],
+  "reset_offset": "0x1cd78",
+  "reset_vector": "0x08024d79",
+  "source": "upstream-MP10Firmware72/MA10v72/update.bin",
+  "source_sha256": "0f55858473446b5987b6ff4f010126adac1023686595c85b4c45c00de5dbd55a",
+  "source_size": 118548
+}
