@@ -25,7 +25,8 @@ cmp -s firmware/custom_update.bin firmware/update.bin
 cmp -s "$build_dir/custom_update.bin" firmware/custom_update.bin
 cmp -s "$build_dir/update.bin" firmware/update.bin
 
-sha256sum -c firmware/SHA256SUMS.txt
+(cd firmware && sha256sum -c SHA256SUMS.txt)
+(cd "$build_dir" && sha256sum -c SHA256SUMS.txt)
 
 python3 - <<'PY'
 import json
