@@ -37,7 +37,7 @@ The official full-size v72 artifact used for the shipped firmware remains the v7
 
 Before flashing:
 
-- Run `sha256sum -c firmware/SHA256SUMS.txt`.
+- Run `(cd firmware && sha256sum -c SHA256SUMS.txt)` from a checkout, or `sha256sum -c SHA256SUMS.txt` in a downloaded release asset directory.
 - Confirm `firmware/custom_update.bin` and `firmware/update.bin` have identical SHA-256 values.
 - Put the file on the microSD card as `update.bin`, even if the downloaded release asset was named `custom_update.bin`.
 

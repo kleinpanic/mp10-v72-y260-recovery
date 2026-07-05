@@ -79,7 +79,7 @@ python3 tools/create_update_bin.py \
   --source /path/to/official/full-size/v72/update.bin \
   --output-dir firmware \
   --force
-sha256sum -c firmware/SHA256SUMS.txt
+(cd firmware && sha256sum -c SHA256SUMS.txt)
 ```
 
 The script refuses to run unless the source image hash matches the official full-size MP10 v72 image above.
@@ -96,7 +96,7 @@ The distinction is naming only:
 - `custom_update.bin` is the CI/build/release artifact so it is obvious this is not a vendor file.
 - `update.bin` is the required on-card name for the MP10/Malyan bootloader.
 
-CI verifies this by rebuilding from the official v72 source image, comparing both generated files to the committed firmware files, checking that `custom_update.bin` and `update.bin` are byte-identical, and validating `firmware/SHA256SUMS.txt`.
+CI verifies this by rebuilding from the official v72 source image, comparing both generated files to the committed firmware files, checking that `custom_update.bin` and `update.bin` are byte-identical, and validating the committed and generated `SHA256SUMS.txt` files. The checksum file uses portable artifact filenames, so it works inside `firmware/`, inside the uploaded workflow artifact, or in a downloaded release asset directory.
 
 ## Release Automation
 

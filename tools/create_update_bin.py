@@ -267,7 +267,7 @@ def write_checksums(paths: list[Path], checksum_path: Path) -> None:
     lines = []
     for path in paths:
         digest = sha256_bytes(path.read_bytes())
-        lines.append(f"{digest}  {path.as_posix()}")
+        lines.append(f"{digest}  {path.name}")
     checksum_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
