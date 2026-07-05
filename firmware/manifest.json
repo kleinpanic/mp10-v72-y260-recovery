@@ -1,5 +1,6 @@
 {
-  "created_at_utc": "2026-07-03T02:20:32+00:00",
+  "created_at_utc": "2026-07-05T06:03:09+00:00",
+  "custom_output_is_byte_identical_to_flash_alias": true,
   "diff_ranges": [
     {
       "address_end_exclusive": "0x08008e0b",
@@ -42,6 +43,9 @@
       "old_hex": "91"
     }
   ],
+  "flash_alias": "firmware/update.bin",
+  "flash_alias_sha256": "51e61467e79c5cfd9f59300a8665577da1bed0d14209e6dc717ff7c3f374a7f5",
+  "flash_filename_required_by_bootloader": "update.bin",
   "kind": "mp10_official_v72_binary_patch_y260",
   "known_caveats": [
     "The exact official full-size v72 source was not present in the workspace. This is a binary patch of the official raw v72 image, not a source rebuild.",
@@ -50,7 +54,7 @@
     "EEPROM writes and EEPROM resets are still not part of this artifact creation."
   ],
   "load_base": "0x08008000",
-  "output": "firmware/update.bin",
+  "output": "firmware/custom_update.bin",
   "output_sha256": "51e61467e79c5cfd9f59300a8665577da1bed0d14209e6dc717ff7c3f374a7f5",
   "output_size": 118548,
   "patches": [

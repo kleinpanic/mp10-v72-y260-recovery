@@ -2,7 +2,7 @@
 
 Unofficial firmware patch for full-size Monoprice MP10 / Malyan MA10-class printers where the stock v72 calibration path drives the Y axis farther forward than the machine can physically travel.
 
-This repo is intentionally scoped: one patched `update.bin`, reproducible tooling, the patch manifest, checksums, the available vendor C/C++ source reference, generated binary-analysis output, and license/notice files.
+This repo is intentionally scoped: one patched firmware image, reproducible tooling, the patch manifest, checksums, the available vendor C/C++ source reference, generated binary-analysis output, and license/notice files.
 
 ## What This Changes
 
@@ -14,6 +14,8 @@ This patch keeps the v72 firmware family and changes the Y boundary path to `Y26
 - Base SHA-256: `0f55858473446b5987b6ff4f010126adac1023686595c85b4c45c00de5dbd55a`
 - Patched SHA-256: `51e61467e79c5cfd9f59300a8665577da1bed0d14209e6dc717ff7c3f374a7f5`
 - Patch method: validated binary patch, not a fake source rebuild
+- Build/release artifact: `firmware/custom_update.bin`
+- SD-card bootloader filename: `update.bin`
 
 The patch edits five 32-bit float words documented in [firmware/manifest.md](firmware/manifest.md):
 
@@ -23,7 +25,8 @@ The patch edits five 32-bit float words documented in [firmware/manifest.md](fir
 
 ## Repo Layout
 
-- [firmware/update.bin](firmware/update.bin) - ready-to-flash patched firmware.
+- [firmware/custom_update.bin](firmware/custom_update.bin) - generated release artifact.
+- [firmware/update.bin](firmware/update.bin) - byte-identical SD-card flash alias.
 - [firmware/manifest.json](firmware/manifest.json) - machine-readable patch manifest.
 - [firmware/manifest.md](firmware/manifest.md) - human-readable patch notes.
 - [firmware/SHA256SUMS.txt](firmware/SHA256SUMS.txt) - checksums for generated artifacts.
@@ -81,6 +84,32 @@ sha256sum -c firmware/SHA256SUMS.txt
 
 The script refuses to run unless the source image hash matches the official full-size MP10 v72 image above.
 
+The generator writes both `firmware/custom_update.bin` and `firmware/update.bin`.
+They are byte-for-byte identical and have the same SHA-256:
+
+```text
+51e61467e79c5cfd9f59300a8665577da1bed0d14209e6dc717ff7c3f374a7f5
+```
+
+The distinction is naming only:
+
+- `custom_update.bin` is the CI/build/release artifact so it is obvious this is not a vendor file.
+- `update.bin` is the required on-card name for the MP10/Malyan bootloader.
+
+CI verifies this by rebuilding from the official v72 source image, comparing both generated files to the committed firmware files, checking that `custom_update.bin` and `update.bin` are byte-identical, and validating `firmware/SHA256SUMS.txt`.
+
+## Release Automation
+
+GitHub Actions runs firmware verification on pull requests, pushes to `main`, and release tags. Tag pushes matching `v*` or `firmware-*` also publish a GitHub Release containing:
+
+- `custom_update.bin`
+- `update.bin`
+- `manifest.json`
+- `manifest.md`
+- `SHA256SUMS.txt`
+
+The release job rebuilds these assets from the official full-size MP10 v72 image before upload. It does not upload stale workspace files.
+
 ## Regenerate Binary Analysis
 
 Requires Python 3 and Ghidra `analyzeHeadless`.
@@ -98,6 +127,7 @@ The generated output is useful for auditing the binary patch locations. It is no
 ## Flash
 
 1. Copy [firmware/update.bin](firmware/update.bin) to the root of a FAT-formatted microSD card as `update.bin`.
+   - If you downloaded `custom_update.bin` from a GitHub Release, rename it to `update.bin` on the card before flashing.
 2. Power the printer off.
 3. Insert the card and power the printer on.
 4. Wait for the firmware update process to finish.

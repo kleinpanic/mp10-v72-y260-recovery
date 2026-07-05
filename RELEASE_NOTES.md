@@ -8,9 +8,14 @@ Initial public firmware patch for affected full-size Monoprice MP10 / Malyan MA1
 - Base SHA-256: `0f55858473446b5987b6ff4f010126adac1023686595c85b4c45c00de5dbd55a`
 - Patched SHA-256: `51e61467e79c5cfd9f59300a8665577da1bed0d14209e6dc717ff7c3f374a7f5`
 - Policy: bound the Y soft limit and UBL high-Y path to `260 mm`
+- Release artifact: `custom_update.bin`
+- Bootloader alias: `update.bin`
+
+`custom_update.bin` and `update.bin` are byte-for-byte identical. The custom filename is used for the build/release artifact so it is clearly not a vendor file. The MP10/Malyan bootloader still expects the firmware file to be named `update.bin` at the root of the microSD card.
 
 ## Included
 
+- `firmware/custom_update.bin`
 - `firmware/update.bin`
 - `firmware/manifest.json`
 - `firmware/manifest.md`
@@ -29,6 +34,12 @@ This release includes original vendor C/C++ source under `src/vendor-reference/`
 The official full-size v72 artifact used for the shipped firmware remains the v72 `update.bin` binary. This release includes a reproducible binary patcher and generated Ghidra analysis output for that binary; `firmware/update.bin` is still a validated binary patch, not a clean source rebuild.
 
 ## Verify
+
+Before flashing:
+
+- Run `sha256sum -c firmware/SHA256SUMS.txt`.
+- Confirm `firmware/custom_update.bin` and `firmware/update.bin` have identical SHA-256 values.
+- Put the file on the microSD card as `update.bin`, even if the downloaded release asset was named `custom_update.bin`.
 
 After flashing, confirm:
 

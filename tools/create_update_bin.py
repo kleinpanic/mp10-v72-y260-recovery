@@ -20,6 +20,8 @@ from pathlib import Path
 EXPECTED_OFFICIAL_SHA256 = "0f55858473446b5987b6ff4f010126adac1023686595c85b4c45c00de5dbd55a"
 EXPECTED_SIZE = 0x1CF14
 LOAD_BASE = 0x08008000
+BUILD_OUTPUT_NAME = "custom_update.bin"
+FLASH_ALIAS_NAME = "update.bin"
 
 
 @dataclass(frozen=True)
@@ -159,7 +161,7 @@ def apply_patches(data: bytes) -> bytes:
     return bytes(output)
 
 
-def build_manifest(source: Path, output: Path, before: bytes, after: bytes) -> dict[str, object]:
+def build_manifest(source: Path, output: Path, flash_alias: Path, before: bytes, after: bytes) -> dict[str, object]:
     reset = word_at(before, 0x04)
     return {
         "created_at_utc": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
@@ -170,6 +172,10 @@ def build_manifest(source: Path, output: Path, before: bytes, after: bytes) -> d
         "output": str(output),
         "output_sha256": sha256_bytes(after),
         "output_size": len(after),
+        "flash_alias": str(flash_alias),
+        "flash_alias_sha256": sha256_bytes(after),
+        "flash_filename_required_by_bootloader": FLASH_ALIAS_NAME,
+        "custom_output_is_byte_identical_to_flash_alias": True,
         "load_base": f"0x{LOAD_BASE:08x}",
         "reset_vector": f"0x{reset:08x}",
         "reset_offset": f"0x{((reset & ~1) - LOAD_BASE):05x}",
@@ -223,7 +229,13 @@ def write_markdown_manifest(manifest: dict[str, object], path: Path) -> None:
         f"- Source SHA-256: `{manifest['source_sha256']}`",
         f"- Output: `{manifest['output']}`",
         f"- Output SHA-256: `{manifest['output_sha256']}`",
+        f"- Flash alias: `{manifest['flash_alias']}`",
+        f"- Flash alias SHA-256: `{manifest['flash_alias_sha256']}`",
+        f"- Required on-card bootloader filename: `{manifest['flash_filename_required_by_bootloader']}`",
         f"- Load base: `{manifest['load_base']}`",
+        "",
+        "`custom_update.bin` and `update.bin` are byte-identical. The custom name is the release/build artifact; "
+        "the MP10/Malyan bootloader still expects the file to be named `update.bin` on the microSD card.",
         "",
         "## Patches",
         "",
@@ -281,7 +293,8 @@ def main() -> int:
     args = parse_args()
     source = args.source
     out_dir = args.output_dir
-    output = out_dir / "update.bin"
+    output = out_dir / BUILD_OUTPUT_NAME
+    flash_alias = out_dir / FLASH_ALIAS_NAME
     manifest_json = out_dir / "manifest.json"
     manifest_md = out_dir / "manifest.md"
     checksum_path = out_dir / "SHA256SUMS.txt"
@@ -294,19 +307,21 @@ def main() -> int:
         raise SystemExit("Internal error: patched image size changed")
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    for path in (output, manifest_json, manifest_md, checksum_path):
+    for path in (output, flash_alias, manifest_json, manifest_md, checksum_path):
         if path.exists() and not args.force:
             raise SystemExit(f"Refusing to overwrite {path}; rerun with --force")
 
     output.write_bytes(after)
-    manifest = build_manifest(source, output, before, after)
+    flash_alias.write_bytes(after)
+    manifest = build_manifest(source, output, flash_alias, before, after)
     manifest_json.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     write_markdown_manifest(manifest, manifest_md)
-    write_checksums([output, manifest_json, manifest_md], checksum_path)
+    write_checksums([output, flash_alias, manifest_json, manifest_md], checksum_path)
 
     print(f"source_sha256={manifest['source_sha256']}")
     print(f"output={output}")
     print(f"output_sha256={manifest['output_sha256']}")
+    print(f"flash_alias={flash_alias}")
     print(f"manifest_json={manifest_json}")
     print(f"manifest_md={manifest_md}")
     print(f"checksums={checksum_path}")
