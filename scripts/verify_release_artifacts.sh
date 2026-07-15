@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source_bin="${MP10_OFFICIAL_UPDATE_BIN:-${repo_root}/../../upstream-MP10Firmware72/MA10v72/update.bin}"
+source_bin="${MP10_OFFICIAL_UPDATE_BIN:-${repo_root}/../../upstream/firmware-v72/MA10v72/update.bin}"
 build_dir="${MP10_BUILD_DIR:-${repo_root}/build/firmware}"
 expected_sha="51e61467e79c5cfd9f59300a8665577da1bed0d14209e6dc717ff7c3f374a7f5"
 

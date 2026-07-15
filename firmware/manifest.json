@@ -1,5 +1,5 @@
 {
-  "created_at_utc": "2026-07-05T06:14:01+00:00",
+  "created_at_utc": "2026-07-15T04:08:59+00:00",
   "custom_output_is_byte_identical_to_flash_alias": true,
   "diff_ranges": [
     {
@@ -123,7 +123,7 @@
   ],
   "reset_offset": "0x1cd78",
   "reset_vector": "0x08024d79",
-  "source": "../../upstream-MP10Firmware72/MA10v72/update.bin",
+  "source": "../../upstream/firmware-v72/MA10v72/update.bin",
   "source_sha256": "0f55858473446b5987b6ff4f010126adac1023686595c85b4c45c00de5dbd55a",
   "source_size": 118548
 }

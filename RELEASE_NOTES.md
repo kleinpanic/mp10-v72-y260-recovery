@@ -1,6 +1,12 @@
-# v72-y260-1
+# v72-y260-2
 
-Initial public firmware patch for affected full-size Monoprice MP10 / Malyan MA10-class printers where stock v72 calibration/probing overtravels the Y axis into the front hard limit.
+Maintenance release of the public firmware patch for affected full-size
+Monoprice MP10 / Malyan MA10-class printers where stock v72
+calibration/probing overtravels the Y axis into the front hard limit.
+
+The firmware bytes are unchanged from `v72-y260-1`. This revision publishes
+the expanded vendor-source/decompilation documentation, CI-built portable
+checksums, and the reorganized monorepo source-image path.
 
 ## Firmware
 
